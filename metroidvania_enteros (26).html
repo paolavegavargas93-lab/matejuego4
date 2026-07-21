@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Núcleo Entero — Ecos del Vacío</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#050608;
+    --void2:#0a0d12;
+    --stone:#1b2027;
+    --stone-light:#2c333d;
+    --panel:rgba(12,14,18,0.9);
+    --bone:#cdd6e0;
+    --bone-dim:#8891a0;
+    --gold:#c9a24b;
+    --gold-dim:#8a7139;
+    --teal:#5fb3ad;
+    --rust:#a8503f;
+    --moss:#6fae7a;
+    --ink:#dfe4ea;
+    --dim:#7b8492;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(900px 500px at 50% -8%, rgba(60,70,85,0.35) 0%, transparent 60%),
+      radial-gradient(1400px 900px at 50% 110%, #0d1116 0%, var(--void) 65%);
+    color:var(--ink);
+    font-family:'Cormorant Garamond', 'Georgia', serif;
+    overflow:hidden;
+    -webkit-user-select:none; user-select:none;
+  }
+  #wrap{
+    height:100vh; height:100dvh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:10px 12px;
+    gap:6px;
+    overflow-y:auto;
+  }
+  h1{
+    font-family:'Cinzel', serif;
+    font-size:clamp(16px,3vh,22px); letter-spacing:6px; font-weight:800;
+    margin:0;
+    color:var(--bone);
+    text-shadow:0 0 18px rgba(95,179,173,0.35);
+    text-align:center;
+    flex-shrink:0;
+  }
+  h1 span{color:var(--gold); text-shadow:0 0 16px rgba(201,162,75,0.5);}
+  .rule{
+    width:220px; height:1px; margin:2px 0;
+    background:linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    position:relative;
+    flex-shrink:0;
+  }
+  .rule::after{
+    content:'✦'; position:absolute; left:50%; top:-7px; transform:translateX(-50%);
+    color:var(--gold); font-size:11px;
+  }
+
+  #hud{
+    width:100%; max-width:900px;
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; flex-wrap:wrap;
+    flex-shrink:0;
+  }
+  .hud-group{display:flex; gap:8px; align-items:center;}
+  .ability-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel); border:1px solid #3a3f47;
+    padding:6px 12px; font-size:13px; color:var(--dim);
+    font-family:'Cinzel', serif; letter-spacing:1px;
+    transition:all .3s; clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  }
+  .ability-chip.active{
+    color:#0a0d0b; background:var(--teal); border-color:var(--teal);
+    box-shadow:0 0 16px rgba(95,179,173,0.55);
+    font-weight:700;
+  }
+  #gemCounter{
+    font-family:'Cinzel', serif; font-size:13px; letter-spacing:1px;
+    background:var(--panel); border:1px solid #3a3f47; padding:6px 12px;
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  }
+  #gemCounter span{color:var(--gold);}
+  #resetBtn{
+    background:var(--panel); color:var(--dim); border:1px solid #3a3f47;
+    padding:6px 12px; font-size:12px; cursor:pointer;
+    font-family:'Cinzel',serif; letter-spacing:1px;
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  }
+  #resetBtn:hover{color:var(--rust); border-color:var(--rust);}
+  #muteBtn{
+    background:var(--panel); color:var(--dim); border:1px solid #3a3f47;
+    padding:6px 12px; font-size:12px; cursor:pointer;
+    font-family:'Cinzel',serif; letter-spacing:1px;
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  }
+  #muteBtn:hover{color:var(--teal); border-color:var(--teal);}
+  #startModal{ width:480px; max-width:92%; }
+
+  #minimap{
+    width:100%; max-width:900px;
+    background:var(--panel); border:1px solid #3a3f47;
+    padding:4px 10px;
+    display:flex; justify-content:center;
+    flex-shrink:0;
+    max-height:16vh;
+    overflow:hidden;
+  }
+  #minimap svg{ display:block; max-height:100%; width:auto; }
+  #minimap text{ font-family:'Cinzel', serif; }
+
+  #stage{
+    position:relative; width:100%; max-width:900px;
+    flex:1 1 auto; min-height:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  canvas{
+    background:#000; display:block;
+    width:auto; height:auto; max-width:100%; max-height:100%;
+    border:1px solid #3a3f47;
+    outline:6px solid var(--void2);
+    box-shadow:0 0 60px rgba(0,0,0,0.7), inset 0 0 80px rgba(0,0,0,0.5);
+  }
+  #controls{
+    width:100%; max-width:900px; margin:0;
+    font-size:clamp(10px,1.6vh,13px); color:var(--dim); text-align:center;
+    font-family:'Cormorant Garamond', serif; font-style:italic; letter-spacing:0.3px;
+    flex-shrink:0;
+  }
+  #controls b{color:var(--bone); font-style:normal;}
+
+  /* Modal puzzle */
+  .overlay{
+    position:absolute; inset:0; background:rgba(3,4,6,0.92);
+    display:none; align-items:center; justify-content:center;
+    z-index:20;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    width:340px; max-width:88%;
+    background:linear-gradient(180deg,#14171c,#0b0d10);
+    border:1px solid var(--gold-dim);
+    padding:26px 22px; text-align:center;
+    box-shadow:0 0 50px rgba(201,162,75,0.15), inset 0 0 40px rgba(0,0,0,0.6);
+    position:relative;
+  }
+  .modal::before, .modal::after{
+    content:''; position:absolute; width:10px; height:10px;
+    border:1px solid var(--gold-dim);
+  }
+  .modal::before{top:8px; left:8px; border-right:none; border-bottom:none;}
+  .modal::after{bottom:8px; right:8px; border-left:none; border-top:none;}
+  .modal h2{
+    margin:0 0 4px; font-size:15px; letter-spacing:3px; color:var(--gold);
+    font-family:'Cinzel',serif; text-transform:uppercase; font-weight:600;
+  }
+  .modal p.sub{color:var(--dim); font-size:12px; margin:0 0 16px; font-style:italic;}
+  .progressBar{
+    height:5px; background:#20242c; overflow:hidden; margin-bottom:18px;
+  }
+  .progressBar > div{height:100%; background:var(--teal); width:0%; transition:width .3s;}
+  .problem{
+    font-family:'Cormorant Garamond', serif; font-size:34px; font-weight:600;
+    color:var(--bone); margin-bottom:16px; letter-spacing:1px;
+    min-height:44px; text-shadow:0 0 10px rgba(255,255,255,0.08);
+  }
+  #puzzleInput, #finalInput{
+    width:110px; font-size:20px; text-align:center; padding:8px;
+    border:1px solid #3a3f47; background:#0a0c10; color:var(--bone);
+    font-family:'Cinzel',serif; outline:none;
+  }
+  #puzzleInput:focus, #finalInput:focus{border-color:var(--gold);}
+  .modal-row{display:flex; gap:10px; justify-content:center; margin-top:16px;}
+  .btn{
+    border:none; padding:9px 18px; cursor:pointer;
+    font-family:'Cinzel',serif; font-size:12px; font-weight:700; letter-spacing:1px;
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  }
+  .btn-primary{background:var(--gold); color:#1a1408;}
+  .btn-secondary{background:transparent; color:var(--dim); border:1px solid #3a3f47;}
+  .feedback{height:18px; margin-top:10px; font-size:13px; font-family:'Cormorant Garamond',serif; font-style:italic;}
+  .feedback.ok{color:var(--teal);}
+  .feedback.bad{color:var(--rust);}
+
+  #victory{
+    position:absolute; inset:0; background:rgba(3,4,6,0.95);
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    z-index:30; text-align:center;
+  }
+  #victory.show{display:flex;}
+  #victory h2{font-size:26px; color:var(--gold); font-family:'Cinzel',serif; letter-spacing:4px; font-weight:800;}
+  #victory p{color:var(--dim); max-width:360px; font-size:15px; font-style:italic;}
+
+  #toast{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    background:var(--panel); border:1px solid var(--gold-dim); color:var(--gold);
+    padding:8px 18px; font-size:12px; font-family:'Cinzel',serif; letter-spacing:1px;
+    opacity:0; transition:opacity .3s, top .3s; pointer-events:none; z-index:25;
+    box-shadow:0 0 20px rgba(201,162,75,.3);
+  }
+  #toast.show{opacity:1; top:24px;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>NÚCLEO <span>ENTERO</span></h1>
+  <div class="rule"></div>
+
+  <div id="hud">
+    <div class="hud-group">
+      <div class="ability-chip" id="chipJump">🦘 Doble Salto</div>
+      <div class="ability-chip" id="chipDash">💨 Impulso</div>
+      <div class="ability-chip" id="chipWall">🪨 Rompemuros</div>
+    </div>
+    <div id="gemCounter">💎 Gemas: <span id="gemCount">0</span>/3</div>
+    <button id="resetBtn">⟳ Reiniciar</button>
+    <button id="muteBtn">🔊 Sonido</button>
+  </div>
+
+  <div id="minimap"></div>
+
+  <div id="stage">
+    <canvas id="game" width="900" height="520"></canvas>
+    <div id="toast"></div>
+
+    <div class="overlay" id="puzzleOverlay">
+      <div class="modal">
+        <h2 id="puzzleTitle">Consola de Cálculo</h2>
+        <p class="sub" id="puzzleSub">Resuelve para cargar energía</p>
+        <div class="progressBar"><div id="progressFill"></div></div>
+        <div class="problem" id="problemText">— — —</div>
+        <input type="text" id="puzzleInput" inputmode="numeric" placeholder="?" autocomplete="off">
+        <div class="feedback" id="feedback"></div>
+        <div class="modal-row">
+          <button class="btn btn-primary" id="submitBtn">Comprobar</button>
+          <button class="btn btn-secondary" id="closeBtn">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="finalOverlay">
+      <div class="modal">
+        <h2>Preparación del Guardián</h2>
+        <p class="sub">Resuelve 5 desafíos con enteros para poder enfrentarlo</p>
+        <div class="problem" id="finalProblemText">— — —</div>
+        <input type="text" id="finalInput" inputmode="numeric" placeholder="?" autocomplete="off">
+        <div class="feedback" id="finalFeedback"></div>
+        <div class="modal-row">
+          <button class="btn btn-primary" id="finalSubmitBtn">Comprobar</button>
+          <button class="btn btn-secondary" id="finalCloseBtn">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="victory">
+      <h2>¡NÚCLEO ESTABILIZADO!</h2>
+      <p>Dominaste el salto doble, el impulso y el rompemuros — y resolviste decenas de operaciones con enteros — para reunir las 3 gemas y abrir el portal final.</p>
+      <button class="btn btn-primary" id="playAgainBtn" style="margin-top:14px;">Jugar de nuevo</button>
+    </div>
+
+    <div class="overlay show" id="startOverlay">
+      <div class="modal" id="startModal">
+        <h2 style="font-size:20px; letter-spacing:4px;">NÚCLEO <span style="color:var(--gold)">ENTERO</span></h2>
+        <p class="sub" style="margin-bottom:14px;">Ecos del Vacío — un reino sellado por matemáticas antiguas</p>
+
+        <div style="text-align:left; font-family:'Cormorant Garamond',serif; font-size:14px; line-height:1.55; color:var(--bone); max-height:44vh; overflow-y:auto; padding-right:6px;">
+          <p style="margin:0 0 10px;"><b style="color:var(--gold); font-family:'Cinzel',serif; font-size:12px; letter-spacing:1px;">OBJETIVO</b><br>
+          Explora las 5 ramas del reino, resuelve operaciones con <b>números enteros</b> para ganar 3 habilidades y reunir 3 gemas. Con las 3 gemas, abre el portal final en el Vestíbulo.</p>
+
+          <p style="margin:0 0 10px;"><b style="color:var(--gold); font-family:'Cinzel',serif; font-size:12px; letter-spacing:1px;">CONTROLES</b><br>
+          <b>← →</b> mover &nbsp;·&nbsp; <b>↑ / Espacio</b> saltar (doble salto si lo tienes)<br>
+          <b>Z / C / Ctrl</b> golpear con el clavo &nbsp;·&nbsp; <b>Shift / X</b> impulso (también golpea)</p>
+
+          <p style="margin:0 0 10px;"><b style="color:var(--teal); font-family:'Cinzel',serif; font-size:12px; letter-spacing:1px;">OPERACIONES CON ENTEROS</b><br>
+          Cada trampa de pinchos en un pasillo tiene una operación (suma, resta, multiplicación, división o comparación). Resuélvela para retraer los pinchos — al resolver las 3 trampas de una rama, obtienes esa habilidad permanentemente.</p>
+
+          <p style="margin:0;"><b style="color:var(--rust); font-family:'Cinzel',serif; font-size:12px; letter-spacing:1px;">CRIATURAS</b><br>
+          Golpéalas con el clavo o el impulso para derrotarlas. Si te tocan sin que ataques, te devuelven a la entrada de la sala.</p>
+        </div>
+
+        <div class="modal-row">
+          <button class="btn btn-primary" id="startBtn">Comenzar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <b>← →</b> mover &nbsp; | &nbsp; <b>↑ / Espacio</b> saltar (dos veces si tienes doble salto) &nbsp; | &nbsp; <b>Z / C / Ctrl</b> golpear con el clavo &nbsp; | &nbsp; <b>Shift / X</b> impulso (también golpea) &nbsp; | &nbsp; tocar una criatura sin golpear te devuelve a la entrada
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // ---------- constants ----------
+  const GRAVITY = 0.7;
+  const JUMP_VEL = -14;
+  const MOVE_SPEED = 4.5;
+  const DASH_SPEED = 20;
+  const DASH_FRAMES = 14;
+  const DASH_COOLDOWN = 45;
+  const ATTACK_FRAMES = 14;
+  const ATTACK_COOLDOWN = 22;
+  const ATTACK_REACH = 26;
+  const PW = 30, PH = 44;
+  const NEEDED = 3;
+
+  // ---------- rooms ----------
+  const ground = {x:0,y:480,w:900,h:40};
+
+  function jag(seed){
+    // deterministic jagged top-edge offsets for a stone-carved look
+    const pts = []; let s = seed;
+    for(let i=0;i<14;i++){ s = (s*9301+49297)%233280; pts.push((s/233280)*5); }
+    return pts;
+  }
+
+  function reqMet(requires){
+    if(!requires) return true;
+    if(Array.isArray(requires)) return requires.every(r=>state.abilities[r]);
+    return !!state.abilities[requires];
+  }
+
+  const rooms = {};
+
+  function makeEnemy(x, minX, maxX){
+    return {type:'ground', x, initX:x, y:480-34, w:34, h:34, minX, maxX, speed:1.1+Math.random()*0.6, dir:1, alive:true, phase:Math.random()*10};
+  }
+  function makeFlyingEnemy(x, yTop, yBottom){
+    return {type:'flying', x, initX:x, y:yTop, initY:yTop, yTop, yBottom, w:28, h:28, dir:1, speed:0.7+Math.random()*0.5, alive:true, phase:Math.random()*10};
+  }
+
+  // Builds a chain of `count` rooms (a "wing") radiating from the hub.
+  // Handles back/forward doors automatically; the caller only supplies theming
+  // and where to place a console (ability) or a gem (collectible) along the chain.
+  function buildWing(cfg){
+    const west = cfg.dir === 'west';
+    const flip = (x,w) => west ? (900 - x - w) : x;
+    const flipRange = (minX,maxX) => west ? [900-maxX, 900-minX] : [minX,maxX];
+    const backSide = west ? 'right' : 'left';
+    const forwardSide = west ? 'left' : 'right';
+    const backSpawnX = west ? 60 : 830;
+    const forwardSpawnX = west ? 830 : 60;
+
+    const keys = [];
+    for(let i=1;i<=cfg.count;i++) keys.push(cfg.prefix+i);
+    keys.forEach((key,idx)=>{
+      const i = idx+1;
+      const isFirst = i===1;
+      const isLast = i===cfg.count;
+      const isConsoleRoom = cfg.consoleAt===i;
+      const addGap = !isLast && !isConsoleRoom; // plain corridors get an integer-operation bridge obstacle
+      const room = {
+        name: cfg.namePrefix + (isLast && cfg.lastName ? ' — '+cfg.lastName : ' '+i),
+        fog: cfg.fog, mist: cfg.mist, particleColor: cfg.particleColor,
+        platforms: [{x:0,y:480,w:900,h:40}],
+        doors: [],
+      };
+      // decorative variety: a small floating ledge in every other plain-ground room
+      if(!addGap && i%2===0 && !isLast){
+        const lw = 160;
+        room.platforms.push({x:flip(360+ (i%3)*40, lw), y:330, w:lw, h:18});
+      }
+      // the obstacle itself: a rune pedestal that retracts a spike trap once its operation is solved
+      if(addGap){
+        room.bridge = {x:flip(280,30), y:440, w:30, h:40};
+        room.spikes = {x:340, y:456, w:220, h:24}; // sits on the (now continuous) floor; symmetric, no flip needed
+      }
+      // back door (toward hub / previous room in the chain)
+      if(isFirst){
+        room.doors.push({side:backSide, yMin:0, yMax:520, requires:null, target:'hub', spawn:cfg.hubReturnSpawn, label:'Vestíbulo'});
+      } else {
+        room.doors.push({side:backSide, yMin:0, yMax:520, requires:null, target:keys[idx-1], spawn:{x:backSpawnX,y:420}, label:'Atrás'});
+      }
+      // forward door (deeper into the chain)
+      if(!isLast){
+        const gated = cfg.gateAfter===i;
+        room.doors.push({side:forwardSide, yMin:0, yMax:520, requires: gated?cfg.gateRequires:null, target:keys[idx+1], spawn:{x:forwardSpawnX,y:420}, label: gated?cfg.gateLabel:'Adelante'});
+      }
+      // special contents
+      if(cfg.consoleAt===i){
+        room.console = {x:flip(420,60),y:400,w:60,h:80, grants:cfg.grants, id:cfg.consoleId, title:cfg.title};
+      }
+      if(isLast && cfg.lastKind==='gem'){
+        if(cfg.gemChallenge==='height'){
+          room.platforms = [{x:0,y:480,w:900,h:40}, {x:380,y:230,w:140,h:20}];
+          room.gem = {x:430,y:190,w:26,h:26,id:cfg.gemId};
+        } else if(cfg.gemChallenge==='gap'){
+          room.platforms = [{x:0,y:480,w:340,h:40},{x:560,y:480,w:340,h:40}];
+          room.gem = {x:flip(610,26),y:440,w:26,h:26,id:cfg.gemId};
+        } else {
+          room.gem = {x:430,y:440,w:26,h:26,id:cfg.gemId};
+        }
+      }
+      // two-to-three creatures per room, kept clear of doors/console/gem/bridge hotspots
+      if(cfg.enemyType === 'flying'){
+        room.enemies = isLast
+          ? [makeFlyingEnemy(250,140,300), makeFlyingEnemy(650,120,290), makeFlyingEnemy(450,90,200)]
+          : [makeFlyingEnemy(260,150,320), makeFlyingEnemy(640,130,300)];
+      } else if(addGap){
+        const ranges = [[60,40,300],[620,600,860]];
+        room.enemies = ranges.map(([ex,eminX,emaxX])=>{
+          if(!west) return makeEnemy(ex,eminX,emaxX);
+          const [nMin,nMax] = flipRange(eminX,emaxX);
+          return makeEnemy(900-ex-34, nMin, nMax);
+        });
+      } else if(cfg.gemChallenge==='gap' && isLast){
+        const ranges = [[120,40,260],[700,600,860]];
+        room.enemies = ranges.map(([ex,eminX,emaxX])=>{
+          if(!west) return makeEnemy(ex,eminX,emaxX);
+          const [nMin,nMax] = flipRange(eminX,emaxX);
+          return makeEnemy(900-ex-34, nMin, nMax);
+        });
+      } else {
+        const ranges = [[220,120,340],[650,560,780]];
+        room.enemies = ranges.map(([ex,eminX,emaxX])=>{
+          if(!west) return makeEnemy(ex,eminX,emaxX);
+          const [nMin,nMax] = flipRange(eminX,emaxX);
+          return makeEnemy(900-ex-34, nMin, nMax);
+        });
+      }
+      rooms[key] = room;
+    });
+    return keys;
+  }
+
+  const wingA = buildWing({ // Doble Salto path
+    prefix:'a', count:4, namePrefix:'Sendero del Salto', lastName:'Santuario del Doble Salto',
+    fog:['#151e17','#050a06'], mist:'rgba(111,174,122,0.07)', particleColor:'#bfe0c8',
+    hubReturnSpawn:{x:850,y:420}, consoleAt:4, grants:'doubleJump', consoleId:'consoleJump', title:'Reliquia: DOBLE SALTO',
+  });
+  const wingB = buildWing({ // Impulso path
+    prefix:'b', count:4, namePrefix:'Sendero del Impulso', lastName:'Santuario del Impulso',
+    fog:['#1c1520','#0a050c'], mist:'rgba(168,80,63,0.06)', particleColor:'#e0b8a8',
+    hubReturnSpawn:{x:50,y:420}, consoleAt:4, grants:'dash', consoleId:'consoleDash', title:'Reliquia: IMPULSO', dir:'west',
+  });
+  const wingC = buildWing({ // Sky gem, gated at the hub by doubleJump
+    prefix:'c', count:4, namePrefix:'Alturas Pálidas', lastName:'Cumbre de Cristal',
+    fog:['#141e28','#05090d'], mist:'rgba(180,200,220,0.08)', particleColor:'#dceaf5',
+    hubReturnSpawn:{x:800,y:300}, lastKind:'gem', gemChallenge:'height', gemId:'sky', enemyType:'flying',
+  });
+  const wingD = buildWing({ // Cave gem, gated at the hub by dash
+    prefix:'d', count:4, namePrefix:'Galería de Ceniza', lastName:'Fosa Ardiente',
+    fog:['#201210','#0a0403'], mist:'rgba(168,80,63,0.09)', particleColor:'#f0b878',
+    hubReturnSpawn:{x:140,y:300}, lastKind:'gem', gemChallenge:'gap', gemId:'cave', dir:'west',
+  });
+  const wingE = buildWing({ // Abyss: reached only by falling through the hub's sealed hatch
+    prefix:'e', count:5, namePrefix:'Grietas del Vacío', lastName:'Núcleo Latente',
+    fog:['#160f22','#04030a'], mist:'rgba(140,110,200,0.08)', particleColor:'#d0b8f0',
+    hubReturnSpawn:{x:100,y:420}, consoleAt:3, grants:'wallBreak', consoleId:'consoleWall', title:'Reliquia: ROMPEMUROS',
+    gateAfter:3, gateRequires:'wallBreak', gateLabel:'Muro Agrietado',
+    lastKind:'gem', gemChallenge:'plain', gemId:'core',
+  });
+
+  rooms.hub = {
+    name:'Vestíbulo', fog:['#141821','#05070a'], mist:'rgba(95,179,173,0.06)', particleColor:'#cfe0dc',
+    platforms:[
+      {x:0,y:480,w:400,h:40}, {x:500,y:480,w:400,h:40},
+      {x:0,y:290,w:220,h:20}, {x:680,y:290,w:220,h:20},
+    ],
+    doors:[
+      {side:'left', yMin:400, yMax:480, requires:null, target:wingB[0], spawn:{x:830,y:420}, label:'Sendero del Impulso'},
+      {side:'left', yMin:190, yMax:290, requires:'dash', target:wingD[0], spawn:{x:830,y:420}, label:'Galería de Ceniza'},
+      {side:'right', yMin:400, yMax:480, requires:null, target:wingA[0], spawn:{x:100,y:420}, label:'Sendero del Salto'},
+      {side:'right', yMin:190, yMax:290, requires:'doubleJump', target:wingC[0], spawn:{x:100,y:420}, label:'Alturas Pálidas'},
+    ],
+    hatch:{x:400,y:480,w:100,h:40, requires:['doubleJump','dash'], target:wingE[0], spawn:{x:100,y:40}},
+    finalGate:{x:400,y:440,w:100,h:40},
+    enemies:[makeEnemy(150,80,300), makeEnemy(700,600,820)],
+  };
+
+  rooms.boss = {
+    name:'Trono del Guardián', fog:['#2a0e12','#050203'], mist:'rgba(220,70,60,0.10)', particleColor:'#f0a0a0',
+    platforms:[{x:0,y:480,w:900,h:40}],
+    doors:[],
+    boss:{x:650, initX:650, y:400, w:70, h:80, minX:120, maxX:820, speed:2.2, dir:1, hp:5, maxHp:5, alive:true, phase:0, hitCooldown:0},
+  };
+
+  function currentPlatforms(room){
+    if(room.hatch && !reqMet(room.hatch.requires)) return room.platforms.concat([room.hatch]);
+    return room.platforms;
+  }
+
+  // cache a jagged top-edge profile per platform (stable across frames)
+  Object.values(rooms).forEach(r=>{
+    r.platforms.forEach((p,i)=>{ p._jag = jag(i*7+p.x+p.y); });
+    if(r.hatch) r.hatch._jag = jag(999+r.hatch.x);
+  });
+
+  // ambient drifting particles (spores/embers)
+  const particles = [];
+  for(let i=0;i<38;i++){
+    particles.push({x:Math.random()*W, y:Math.random()*H, r:0.6+Math.random()*1.8, s:0.15+Math.random()*0.35, drift:(Math.random()-0.5)*0.3, a:0.15+Math.random()*0.35});
+  }
+
+  // ---------- state ----------
+  const state = {
+    currentRoom:'hub',
+    abilities:{doubleJump:false, dash:false, wallBreak:false},
+    gems:{sky:false, cave:false, core:false},
+    progress:{consoleJump:0, consoleDash:0, consoleWall:0},
+    bridges:{},
+    bridgeProgress:{},
+    finalProgress:0,
+    lastSpawn:{hub:{x:60,y:420}},
+    finalUnlockedShown:false,
+    transitionAlpha:1,
+    soundOn:true,
+  };
+
+  // ---------- sound (synthesized, no external files) ----------
+  let audioCtx = null;
+  function ensureAudio(){
+    if(audioCtx) { if(audioCtx.state==='suspended') audioCtx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    audioCtx = new AC();
+  }
+  function beep(freq, duration, type, volume, delay){
+    if(!state.soundOn) return;
+    ensureAudio();
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime + (delay||0);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type||'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(volume||0.12, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0+duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0+duration+0.02);
+  }
+  const sfx = {
+    jump:   ()=>beep(520,0.12,'triangle',0.12),
+    dash:   ()=>{ beep(200,0.15,'sawtooth',0.12); beep(400,0.1,'sawtooth',0.08,0.03); },
+    attack: ()=>beep(320,0.08,'square',0.10),
+    hurt:   ()=>beep(120,0.25,'sawtooth',0.16),
+    defeat: ()=>{ beep(600,0.06,'square',0.12); beep(300,0.1,'square',0.10,0.05); },
+    correct:()=>{ beep(660,0.08,'sine',0.14); beep(880,0.12,'sine',0.14,0.09); },
+    wrong:  ()=>beep(150,0.2,'sawtooth',0.15),
+    unlock: ()=>{ beep(440,0.12,'sine',0.15); beep(660,0.12,'sine',0.15,0.10); beep(880,0.18,'sine',0.18,0.20); },
+    gem:    ()=>{ beep(900,0.05,'sine',0.12); beep(1200,0.08,'sine',0.12,0.05); },
+    door:   ()=>beep(250,0.15,'triangle',0.10),
+    victory:()=>[523,659,784,1046].forEach((f,i)=>beep(f,0.22,'sine',0.16,i*0.12)),
+  };
+
+  const player = {x:60,y:420,vx:0,vy:0,w:PW,h:PH,onGround:false,facing:1,jumpsUsed:0,dashTimer:0,dashCooldown:0,attackTimer:0,attackCooldown:0};
+
+  const keys = {left:false, right:false};
+  let paused = true; // frozen until the start screen is dismissed
+
+  window.addEventListener('keydown', e=>{
+    if(e.code === 'Escape'){
+      const startOv = document.getElementById('startOverlay');
+      if(startOv.classList.contains('show')){
+        startOv.classList.remove('show');
+        paused = false;
+        ensureAudio();
+      } else {
+        closeAllModals();
+      }
+      return;
+    }
+    if(paused) return; // ignore movement/action keys entirely while a puzzle is open
+    if(['ArrowLeft','KeyA'].includes(e.code)) keys.left = true;
+    if(['ArrowRight','KeyD'].includes(e.code)) keys.right = true;
+    if(['ArrowUp','KeyW','Space'].includes(e.code)){ e.preventDefault(); if(!e.repeat) tryJump(); }
+    if(['ShiftLeft','ShiftRight','KeyX'].includes(e.code)){ if(!e.repeat) tryDash(); }
+    if(['KeyZ','KeyC','KeyJ','ControlLeft','ControlRight'].includes(e.code)){ if(!e.repeat) tryAttack(); }
+  });
+  window.addEventListener('keyup', e=>{
+    if(['ArrowLeft','KeyA'].includes(e.code)) keys.left = false;
+    if(['ArrowRight','KeyD'].includes(e.code)) keys.right = false;
+  });
+
+  function tryJump(){
+    if(paused) return;
+    if(player.onGround){
+      player.vy = JUMP_VEL; player.onGround = false; player.jumpsUsed = 1;
+      sfx.jump();
+    } else if(state.abilities.doubleJump && player.jumpsUsed < 2){
+      player.vy = JUMP_VEL; player.jumpsUsed = 2;
+      sfx.jump();
+    }
+  }
+  function tryDash(){
+    if(paused) return;
+    if(state.abilities.dash && player.dashCooldown<=0 && player.dashTimer<=0){
+      player.dashTimer = DASH_FRAMES;
+      player.dashCooldown = DASH_COOLDOWN;
+      player.vy = 0;
+      sfx.dash();
+    }
+  }
+  function tryAttack(){
+    if(paused) return;
+    if(player.attackCooldown <= 0 && player.attackTimer <= 0){
+      player.attackTimer = ATTACK_FRAMES;
+      sfx.attack();
+      player.attackCooldown = ATTACK_COOLDOWN;
+    }
+  }
+
+  function rectsOverlap(a,b){
+    return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+  }
+
+  function enterRoom(name, x, y){
+    state.currentRoom = name;
+    player.x = x; player.y = y; player.vx = 0; player.vy = 0;
+    player.jumpsUsed = 0; player.onGround = false;
+    player.dashTimer = 0; player.attackTimer = 0;
+    state.lastSpawn[name] = {x,y};
+    state.transitionAlpha = 1;
+    sfx.door();
+    updateHUD();
+  }
+
+  function respawnInRoom(){
+    const sp = state.lastSpawn[state.currentRoom] || {x:60,y:420};
+    player.x = sp.x; player.y = sp.y; player.vx = 0; player.vy = 0; player.jumpsUsed = 0;
+    sfx.hurt();
+  }
+
+  // ---------- physics / update ----------
+  function update(){
+    if(paused) return;
+    const room = rooms[state.currentRoom];
+
+    // horizontal input
+    if(player.dashTimer > 0){
+      player.vx = player.facing * DASH_SPEED;
+      player.dashTimer--;
+    } else {
+      player.vx = 0;
+      if(keys.left){ player.vx = -MOVE_SPEED; player.facing = -1; }
+      if(keys.right){ player.vx = MOVE_SPEED; player.facing = 1; }
+    }
+    if(player.dashCooldown > 0) player.dashCooldown--;
+    if(player.attackTimer > 0) player.attackTimer--;
+    if(player.attackCooldown > 0) player.attackCooldown--;
+
+    // gravity (skip during dash for a clean straight burst)
+    if(player.dashTimer <= 0){
+      player.vy += GRAVITY;
+      if(player.vy > 22) player.vy = 22;
+    }
+
+    // horizontal move + collide
+    player.x += player.vx;
+    const plats = currentPlatforms(room);
+    for(const p of plats){
+      if(rectsOverlap(player,p)){
+        if(player.vx > 0) player.x = p.x - player.w;
+        else if(player.vx < 0) player.x = p.x + p.w;
+      }
+    }
+
+    // door / edge handling (horizontal)
+    if(player.x < 0){
+      const d = room.doors.find(d=>d.side==='left' && (player.y+player.h/2) >= d.yMin && (player.y+player.h/2) <= d.yMax);
+      if(d && reqMet(d.requires)){
+        enterRoom(d.target, d.spawn.x, d.spawn.y);
+        return;
+      }
+      player.x = 0;
+    }
+    if(player.x + player.w > W){
+      const d = room.doors.find(d=>d.side==='right' && (player.y+player.h/2) >= d.yMin && (player.y+player.h/2) <= d.yMax);
+      if(d && reqMet(d.requires)){
+        enterRoom(d.target, d.spawn.x, d.spawn.y);
+        return;
+      }
+      player.x = W - player.w;
+    }
+
+    // vertical move + collide
+    player.y += player.vy;
+    player.onGround = false;
+    for(const p of plats){
+      if(rectsOverlap(player,p)){
+        if(player.vy > 0){ player.y = p.y - player.h; player.vy = 0; player.onGround = true; player.jumpsUsed = 0; }
+        else if(player.vy < 0){ player.y = p.y + p.h; player.vy = 0; }
+      }
+    }
+
+    // hub hatch: falls through into the abyss wing once both abilities are held
+    if(room.hatch){
+      const h = room.hatch;
+      const cx = player.x + player.w/2;
+      if(cx > h.x && cx < h.x+h.w && player.y > h.y && reqMet(h.requires)){
+        enterRoom(h.target, h.spawn.x, h.spawn.y);
+        return;
+      }
+    }
+
+    // fell into a pit -> respawn
+    if(player.y > H + 60){
+      respawnInRoom();
+    }
+
+    // enemy patrol + collision
+    if(room.enemies){
+      const attacking = player.dashTimer > 0 || player.attackTimer > 0;
+      const hitbox = attacking ? {
+        x: player.facing > 0 ? player.x : player.x - ATTACK_REACH,
+        y: player.y,
+        w: player.w + ATTACK_REACH,
+        h: player.h,
+      } : player;
+      for(const en of room.enemies){
+        if(!en.alive) continue;
+        if(en.type === 'flying'){
+          en.y += en.speed * en.dir;
+          if(en.y <= en.yTop){ en.y = en.yTop; en.dir = 1; }
+          if(en.y + en.h >= en.yBottom){ en.y = en.yBottom - en.h; en.dir = -1; }
+        } else {
+          en.x += en.speed * en.dir;
+          if(en.x <= en.minX){ en.x = en.minX; en.dir = 1; }
+          if(en.x + en.w >= en.maxX){ en.x = en.maxX - en.w; en.dir = -1; }
+        }
+        if(rectsOverlap(hitbox, en)){
+          if(attacking){
+            en.alive = false;
+            sfx.defeat();
+            showToast('✦ Criatura derrotada');
+          } else {
+            respawnInRoom();
+            showToast('⚠ Una criatura te golpeó');
+          }
+        }
+      }
+    }
+
+    // boss fight
+    if(room.boss && room.boss.alive){
+      const boss = room.boss;
+      const attacking = player.dashTimer > 0 || player.attackTimer > 0;
+      const hitbox = attacking ? {
+        x: player.facing > 0 ? player.x : player.x - ATTACK_REACH,
+        y: player.y,
+        w: player.w + ATTACK_REACH,
+        h: player.h,
+      } : player;
+
+      boss.x += boss.speed * boss.dir;
+      if(boss.x <= boss.minX){ boss.x = boss.minX; boss.dir = 1; }
+      if(boss.x + boss.w >= boss.maxX){ boss.x = boss.maxX - boss.w; boss.dir = -1; }
+      if(boss.hitCooldown > 0) boss.hitCooldown--;
+
+      if(rectsOverlap(hitbox, boss)){
+        if(attacking && boss.hitCooldown <= 0){
+          boss.hp--;
+          boss.hitCooldown = 30;
+          sfx.defeat();
+          if(boss.hp <= 0){
+            boss.alive = false;
+            showToast('✦ ¡Guardián derrotado!');
+            setTimeout(()=>{
+              document.getElementById('victory').classList.add('show');
+              sfx.victory();
+            }, 700);
+          } else {
+            showToast('✦ Impacto — vida del guardián: ' + boss.hp + '/' + boss.maxHp);
+          }
+        } else if(!attacking){
+          respawnInRoom();
+          showToast('⚠ El guardián te golpeó');
+        }
+      }
+    }
+
+    // console interaction
+    if(room.console && !state.abilities[room.console.grants]){
+      if(rectsOverlap(player, room.console)){
+        openConsolePuzzle(room.console);
+      }
+    }
+
+    // bridge pedestal interaction (integer-operation obstacle that retracts nearby spikes)
+    if(room.bridge && !state.bridges[state.currentRoom]){
+      if(rectsOverlap(player, room.bridge)){
+        openBridgePuzzle(state.currentRoom);
+      }
+    }
+
+    // spike trap: hurts on contact until its pedestal is solved
+    if(room.spikes && !state.bridges[state.currentRoom]){
+      if(rectsOverlap(player, room.spikes)){
+        respawnInRoom();
+        showToast('⚠ Los pinchos te lastimaron');
+      }
+    }
+
+    // gem pickup
+    const gemLabels = {sky:'Alturas Pálidas', cave:'Fosa Ardiente', core:'Núcleo Latente'};
+    if(room.gem && !state.gems[room.gem.id]){
+      if(rectsOverlap(player, room.gem)){
+        state.gems[room.gem.id] = true;
+        sfx.gem();
+        showToast('💎 Gema obtenida: ' + (gemLabels[room.gem.id]||room.gem.id));
+        updateHUD();
+      }
+    }
+
+    // final gate
+    if(room.finalGate && rectsOverlap(player, room.finalGate)){
+      if(state.gems.sky && state.gems.cave && state.gems.core){
+        if(!document.getElementById('finalOverlay').classList.contains('show') && !document.getElementById('victory').classList.contains('show')){
+          openFinalPuzzle();
+        }
+      } else {
+        showToast('🔒 Necesitas las 3 gemas (Alturas, Fosa Ardiente y Núcleo)');
+      }
+    }
+  }
+
+  // ---------- rendering ----------
+  function drawBarrierDoor(d){
+    const locked = d.requires && !state.abilities[d.requires];
+    const x = d.side==='left' ? 0 : W-12;
+    const w = 12;
+    const flicker = 0.75 + Math.sin(Date.now()/260 + d.yMin) * 0.25;
+    ctx.save();
+    const col = locked ? '168,80,63' : '95,179,173';
+    ctx.fillStyle = `rgba(${col},${locked?0.22:0.16*flicker})`;
+    ctx.fillRect(x, d.yMin, w, d.yMax-d.yMin);
+    ctx.strokeStyle = locked ? 'rgba(168,80,63,0.9)' : `rgba(95,179,173,${flicker})`;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x+0.5, d.yMin+0.5, w-1, d.yMax-d.yMin-1);
+    // rune glyph at the gate's center
+    ctx.fillStyle = locked ? '#a8503f' : '#5fb3ad';
+    ctx.font = '13px Cinzel, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(locked ? '×' : '✦', x+w/2, (d.yMin+d.yMax)/2 + 4);
+    ctx.font = '10px Cormorant Garamond, serif';
+    ctx.fontStyle = 'italic';
+    ctx.fillStyle = locked ? 'rgba(168,80,63,0.85)' : 'rgba(95,179,173,0.85)';
+    ctx.textAlign = d.side==='left' ? 'left' : 'right';
+    const lx = d.side==='left' ? 18 : W-18;
+    ctx.fillText(d.label, lx, d.yMin+14);
+    ctx.restore();
+  }
+
+  function drawPlayer(){
+    ctx.save();
+    const cx = player.x + player.w/2;
+    const top = player.y;
+    const bob = player.onGround ? Math.sin(Date.now()/140)*(Math.abs(player.vx)>0.1?1.2:0.4) : 0;
+    const glow = player.attackTimer>0 ? '#f2ead0' : (player.dashTimer>0 ? '#c9a24b' : '#5fb3ad');
+    const facing = player.facing;
+
+    // cape / shell-wing trailing behind, with segmented ridge lines like a beetle wing case
+    const capeDir = -facing;
+    ctx.fillStyle = 'rgba(8,9,11,0.92)';
+    ctx.beginPath();
+    ctx.moveTo(cx - capeDir*4, top+11);
+    ctx.quadraticCurveTo(cx + capeDir*17, top+player.h*0.55, cx + capeDir*6, top+player.h+2+bob);
+    ctx.lineTo(cx - capeDir*10, top+player.h-4+bob);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(180,190,200,0.18)';
+    ctx.lineWidth = 0.8;
+    for(let i=1;i<=3;i++){
+      ctx.beginPath();
+      ctx.moveTo(cx - capeDir*2, top+11+i*6);
+      ctx.quadraticCurveTo(cx + capeDir*(14-i*2), top+player.h*0.5+i*3, cx + capeDir*4, top+player.h-2+i*2+bob);
+      ctx.stroke();
+    }
+
+    // thorax / body: dark chitin shell with subtle segment rings
+    ctx.fillStyle = '#0c0d10';
+    ctx.beginPath();
+    ctx.moveTo(cx, top+bob);
+    ctx.quadraticCurveTo(player.x-1, top+player.h*0.35+bob, player.x+3, top+player.h+bob);
+    ctx.lineTo(player.x+player.w-3, top+player.h+bob);
+    ctx.quadraticCurveTo(player.x+player.w+1, top+player.h*0.35+bob, cx, top+bob);
+    ctx.closePath();
+    ctx.fill();
+    // carapace segment lines across the body
+    ctx.strokeStyle = 'rgba(210,218,226,0.14)';
+    ctx.lineWidth = 1;
+    for(let i=1;i<=2;i++){
+      const yy = top+player.h*0.55+i*8+bob;
+      ctx.beginPath();
+      ctx.moveTo(player.x+4, yy);
+      ctx.quadraticCurveTo(cx, yy+3, player.x+player.w-4, yy);
+      ctx.stroke();
+    }
+    // rim light along the shell edge
+    ctx.strokeStyle = 'rgba(200,210,220,0.16)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, top+bob);
+    ctx.quadraticCurveTo(player.x-1, top+player.h*0.35+bob, player.x+3, top+player.h+bob);
+    ctx.stroke();
+
+    // the nail: a slender blade held at the side, swaying idly, and slashing forward on attack or dash
+    const hiltX = cx + facing*3, hiltY = top + player.h*0.62 + bob;
+    let swingAngle;
+    if(player.attackTimer > 0){
+      const frac = 1 - player.attackTimer/ATTACK_FRAMES;
+      swingAngle = -1.3 + frac*1.9;
+    } else if(player.dashTimer > 0){
+      const frac = 1 - player.dashTimer/DASH_FRAMES;
+      swingAngle = -1.15 + frac*1.5;
+    } else {
+      swingAngle = 0.15 + Math.sin(Date.now()/450)*0.14;
+    }
+    ctx.save();
+    ctx.translate(hiltX, hiltY);
+    if(facing < 0) ctx.scale(-1,1);
+    ctx.rotate(swingAngle);
+    ctx.fillStyle = '#2a2f37';
+    ctx.fillRect(-2,-2.5,5,5);
+    const bladeLen = player.attackTimer>0 ? 27 : 20;
+    if(player.attackTimer>0){ ctx.shadowColor = glow; ctx.shadowBlur = 10; }
+    const bladeGrad = ctx.createLinearGradient(0,0,bladeLen,0);
+    bladeGrad.addColorStop(0,'#d7dde6');
+    bladeGrad.addColorStop(1, glow);
+    ctx.fillStyle = bladeGrad;
+    ctx.beginPath();
+    ctx.moveTo(2,-1.6);
+    ctx.lineTo(bladeLen,0);
+    ctx.lineTo(2,1.6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // pale chitin mask (rounded, slightly pointed chin like a beetle head-plate)
+    const headCx = cx, headCy = top+13+bob;
+    ctx.fillStyle = '#e4e8ee';
+    ctx.beginPath();
+    ctx.moveTo(headCx-8, headCy-2);
+    ctx.quadraticCurveTo(headCx-9, headCy+9, headCx, headCy+13);
+    ctx.quadraticCurveTo(headCx+9, headCy+9, headCx+8, headCy-2);
+    ctx.quadraticCurveTo(headCx+7, headCy-9, headCx, headCy-10);
+    ctx.quadraticCurveTo(headCx-7, headCy-9, headCx-8, headCy-2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(20,22,26,0.5)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    // faint hairline crack detail on the mask
+    ctx.beginPath();
+    ctx.moveTo(headCx-3, headCy-7);
+    ctx.lineTo(headCx-1, headCy-2);
+    ctx.lineTo(headCx-4, headCy+2);
+    ctx.stroke();
+
+    // dark almond eye-voids with glowing core (color reflects current ability state)
+    const eyeOffset = facing>0 ? 2.2 : -2.2;
+    [-1,1].forEach(side=>{
+      const ex = headCx + side*3.6 + eyeOffset*0.3;
+      const ey = headCy - 1;
+      ctx.fillStyle = '#0c0d10';
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, 2.1, 3, 0, 0, Math.PI*2);
+      ctx.fill();
+    });
+    const eyeX = headCx + (facing>0?3.6:-3.6) + eyeOffset*0.3;
+    ctx.shadowColor = glow; ctx.shadowBlur = 9;
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.ellipse(eyeX, headCy-1, 1.1, 1.6, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // segmented insect antennae curling from the crown
+    ctx.strokeStyle = '#0c0d10'; ctx.lineWidth = 1.6; ctx.lineCap='round';
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(headCx+side*3, headCy-9);
+      ctx.quadraticCurveTo(headCx+side*8, headCy-15, headCx+side*6, headCy-19);
+      ctx.stroke();
+      ctx.fillStyle = glow;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(headCx+side*6, headCy-19, 1.1, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    // slender legs hint at the base
+    ctx.strokeStyle = '#0c0d10'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(player.x+7, top+player.h-2+bob); ctx.lineTo(player.x+5, top+player.h+4+bob);
+    ctx.moveTo(player.x+player.w-7, top+player.h-2+bob); ctx.lineTo(player.x+player.w-5, top+player.h+4+bob);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function updateParticles(){
+    for(const p of particles){
+      p.y -= p.s;
+      p.x += p.drift;
+      if(p.y < -5){ p.y = H+5; p.x = Math.random()*W; }
+      if(p.x < -5) p.x = W+5;
+      if(p.x > W+5) p.x = -5;
+    }
+  }
+
+  function drawPlatform(p){
+    ctx.save();
+    // deep shadow base
+    ctx.fillStyle = '#08090b';
+    ctx.fillRect(p.x, p.y+3, p.w, p.h);
+    // stone body gradient
+    const g = ctx.createLinearGradient(0,p.y,0,p.y+p.h);
+    g.addColorStop(0,'#2a2f37'); g.addColorStop(1,'#161a1f');
+    ctx.fillStyle = g;
+    // jagged top edge polygon for a hand-carved rock look
+    const seg = p.w / (p._jag.length-1);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y+p.h);
+    for(let i=0;i<p._jag.length;i++){
+      ctx.lineTo(p.x + i*seg, p.y + p._jag[i]);
+    }
+    ctx.lineTo(p.x+p.w, p.y+p.h);
+    ctx.closePath();
+    ctx.fill();
+    // pale rim light on the jagged edge
+    ctx.strokeStyle = 'rgba(180,190,200,0.22)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y+p._jag[0]);
+    for(let i=1;i<p._jag.length;i++) ctx.lineTo(p.x+i*seg, p.y+p._jag[i]);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBoss(b){
+    ctx.save();
+    const cx = b.x + b.w/2, top = b.y;
+    const bob = Math.sin(Date.now()/220 + b.phase) * 2;
+    const flash = b.hitCooldown > 20 ? 0.5 : 0; // brief white flash right after being struck
+
+    // wide dread halo
+    const halo = ctx.createRadialGradient(cx, top+b.h/2, 0, cx, top+b.h/2, 60);
+    halo.addColorStop(0, 'rgba(220,60,50,0.30)');
+    halo.addColorStop(1, 'rgba(220,60,50,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(cx, top+b.h/2, 60, 0, Math.PI*2); ctx.fill();
+
+    // massive chitin body
+    ctx.fillStyle = flash ? '#5a3030' : '#1c1012';
+    ctx.beginPath();
+    ctx.moveTo(cx, top+bob);
+    ctx.quadraticCurveTo(b.x-6, top+b.h*0.4+bob, b.x+6, top+b.h+bob);
+    ctx.lineTo(b.x+b.w-6, top+b.h+bob);
+    ctx.quadraticCurveTo(b.x+b.w+6, top+b.h*0.4+bob, cx, top+bob);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(240,180,170,0.3)'; ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // jagged crown spikes
+    ctx.fillStyle = '#100708';
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath();
+      ctx.moveTo(cx+i*13-5, top+10+bob);
+      ctx.lineTo(cx+i*13, top-16+bob-Math.abs(i)*4);
+      ctx.lineTo(cx+i*13+5, top+10+bob);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // twin burning eyes
+    ctx.shadowColor = '#ff5a3c'; ctx.shadowBlur = 14;
+    ctx.fillStyle = '#ff5a3c';
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.ellipse(cx+side*14, top+26+bob, 4.2, 3, 0, 0, Math.PI*2);
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+
+    // clawed legs
+    ctx.strokeStyle = '#100708'; ctx.lineWidth = 3;
+    const legPhase = Math.sin(Date.now()/150 + b.phase) * 4;
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(cx+side*20, top+b.h-4+bob);
+      ctx.lineTo(cx+side*24+legPhase, top+b.h+10+bob);
+      ctx.stroke();
+    });
+
+    // floating health bar
+    const barW = 90, barX = cx-barW/2, barY = top-34;
+    ctx.fillStyle = 'rgba(10,8,9,0.7)';
+    ctx.fillRect(barX, barY, barW, 8);
+    ctx.fillStyle = '#e0453a';
+    ctx.fillRect(barX, barY, barW*(b.hp/b.maxHp), 8);
+    ctx.strokeStyle = 'rgba(240,200,190,0.4)'; ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, 8);
+    ctx.fillStyle = 'rgba(230,210,205,0.75)';
+    ctx.font = 'italic 10px Cormorant Garamond, serif'; ctx.textAlign = 'center';
+    ctx.fillText('Guardián del Núcleo', cx, barY-6);
+
+    ctx.restore();
+  }
+
+  function drawFlyingEnemy(en){
+    ctx.save();
+    const cx = en.x + en.w/2, cy = en.y + en.h/2;
+    const flutter = Math.sin(Date.now()/110 + en.phase);
+    // pale halo, cool-toned to match the sky zone
+    const halo = ctx.createRadialGradient(cx,cy,0,cx,cy,24);
+    halo.addColorStop(0,'rgba(180,205,230,0.32)');
+    halo.addColorStop(1,'rgba(180,205,230,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(cx,cy,24,0,Math.PI*2); ctx.fill();
+    // wispy body
+    ctx.fillStyle = '#3a4652';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, en.w/2-3, en.h/2-6, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(220,234,245,0.6)'; ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // two fluttering translucent wings
+    ctx.fillStyle = 'rgba(220,234,245,0.35)';
+    [-1,1].forEach(side=>{
+      ctx.save();
+      ctx.translate(cx + side*8, cy - 2);
+      ctx.rotate(side*0.5 + flutter*0.35);
+      ctx.beginPath();
+      ctx.ellipse(0,0, 10, 5, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+    // glowing core eye
+    ctx.shadowColor = '#8fd0ff'; ctx.shadowBlur = 10;
+    ctx.fillStyle = '#8fd0ff';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // faint trailing wisps below, since it hovers rather than walks
+    ctx.strokeStyle = 'rgba(180,205,230,0.3)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx-4, cy+en.h/2);
+    ctx.quadraticCurveTo(cx-4+flutter*3, cy+en.h/2+8, cx-4, cy+en.h/2+14);
+    ctx.moveTo(cx+4, cy+en.h/2);
+    ctx.quadraticCurveTo(cx+4-flutter*3, cy+en.h/2+8, cx+4, cy+en.h/2+14);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEnemy(en){
+    ctx.save();
+    const cx = en.x + en.w/2, top = en.y;
+    const bob = Math.sin(Date.now()/180 + en.phase) * 1.5;
+    const midY = top+en.h/2+bob;
+    // ambient halo so it reads clearly against any room's fog color
+    const halo = ctx.createRadialGradient(cx,midY,0,cx,midY,26);
+    halo.addColorStop(0,'rgba(168,80,63,0.35)');
+    halo.addColorStop(1,'rgba(168,80,63,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(cx,midY,26,0,Math.PI*2); ctx.fill();
+    // body: lighter chitin so it never blends into the near-black background
+    ctx.fillStyle = '#3a2a2c';
+    ctx.beginPath();
+    ctx.ellipse(cx, midY, en.w/2, en.h/2-2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(228,190,180,0.55)'; ctx.lineWidth = 1.4;
+    ctx.stroke();
+    // spiky dorsal ridge
+    ctx.fillStyle = '#1a1012';
+    for(let i=-1;i<=1;i++){
+      ctx.beginPath();
+      ctx.moveTo(cx+i*8-3, top+7+bob);
+      ctx.lineTo(cx+i*8, top-5+bob);
+      ctx.lineTo(cx+i*8+3, top+7+bob);
+      ctx.closePath(); ctx.fill();
+    }
+    // glowing eye, facing its patrol direction
+    ctx.shadowColor = '#ff6b4f'; ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ff6b4f';
+    ctx.beginPath();
+    ctx.arc(cx + en.dir*5, midY, 2.8, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // skittering legs
+    ctx.strokeStyle = '#1a1012'; ctx.lineWidth = 1.6;
+    const legPhase = Math.sin(Date.now()/120 + en.phase) * 3;
+    ctx.beginPath();
+    ctx.moveTo(cx-8, top+en.h-3+bob); ctx.lineTo(cx-8+legPhase, top+en.h+4+bob);
+    ctx.moveTo(cx+8, top+en.h-3+bob); ctx.lineTo(cx+8-legPhase, top+en.h+4+bob);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function zoneOf(roomKey){
+    if(roomKey === 'hub') return 'hub';
+    return roomKey[0];
+  }
+
+  function drawZoneDecor(zone){
+    const t = Date.now()/1000;
+    ctx.save();
+
+    if(zone === 'hub'){
+      // grand rune circle set into the floor, befitting a central sanctum
+      ctx.save();
+      ctx.translate(450, 500);
+      ctx.strokeStyle = 'rgba(201,162,75,0.18)'; ctx.lineWidth = 1.2;
+      [70,95,118].forEach(r=>{ ctx.beginPath(); ctx.ellipse(0,0,r,r*0.22,0,0,Math.PI*2); ctx.stroke(); });
+      for(let i=0;i<12;i++){
+        const a = (i/12)*Math.PI*2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*70, Math.sin(a)*70*0.22);
+        ctx.lineTo(Math.cos(a)*95, Math.sin(a)*95*0.22);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+    } else if(zone === 'a'){
+      // hanging vines with small leaf clusters, forest-sanctuary feel
+      ctx.strokeStyle = 'rgba(90,140,100,0.4)'; ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(110,165,120,0.35)';
+      for(let i=0;i<4;i++){
+        const vx = 110 + i*210 + Math.sin(t*0.3+i)*6;
+        const len = 70 + (i%2)*40;
+        ctx.beginPath();
+        ctx.moveTo(vx, 0);
+        ctx.quadraticCurveTo(vx+10*Math.sin(t*0.5+i), len*0.5, vx+4*Math.sin(t*0.5+i), len);
+        ctx.stroke();
+        for(let j=0;j<3;j++){
+          const ly = len*0.3 + j*len*0.28;
+          ctx.beginPath();
+          ctx.ellipse(vx+8, ly, 7, 4, 0.6, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+
+    } else if(zone === 'b'){
+      // jagged amethyst/rust crystal clusters jutting from the ground
+      ctx.fillStyle = 'rgba(168,110,90,0.28)';
+      ctx.strokeStyle = 'rgba(220,170,150,0.25)'; ctx.lineWidth = 1;
+      [90, 340, 620, 800].forEach((cx,i)=>{
+        const h = 40 + (i%2)*24;
+        ctx.beginPath();
+        ctx.moveTo(cx-14, 480); ctx.lineTo(cx-3, 480-h); ctx.lineTo(cx+6, 480-h*0.6); ctx.lineTo(cx+16, 480);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      });
+
+    } else if(zone === 'c'){
+      // slow drifting cloud wisps at varying heights
+      ctx.fillStyle = 'rgba(210,225,240,0.10)';
+      for(let i=0;i<4;i++){
+        const cx = ((i*260 + t*14) % (W+200)) - 100;
+        const cy = 60 + i*70;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 60, 16, 0, 0, Math.PI*2);
+        ctx.ellipse(cx+35, cy+4, 38, 12, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+    } else if(zone === 'd'){
+      // glowing fissures across the ground, embers-in-rock feel
+      ctx.strokeStyle = 'rgba(240,150,90,0.35)'; ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(240,150,90,0.5)'; ctx.shadowBlur = 4;
+      [160, 420, 700].forEach((fx,i)=>{
+        ctx.beginPath();
+        ctx.moveTo(fx, 480);
+        ctx.lineTo(fx+14, 460); ctx.lineTo(fx+4, 445); ctx.lineTo(fx+20, 425);
+        ctx.stroke();
+      });
+      ctx.shadowBlur = 0;
+
+    } else if(zone === 'e'){
+      // slowly rotating arcane glyphs adrift in the void
+      ctx.strokeStyle = 'rgba(190,160,230,0.3)'; ctx.lineWidth = 1.3;
+      [[150,120],[430,80],[720,160]].forEach(([gx,gy],i)=>{
+        ctx.save();
+        ctx.translate(gx, gy + Math.sin(t*0.6+i)*6);
+        ctx.rotate(t*0.15 + i);
+        ctx.beginPath();
+        if(i%3===0){ ctx.moveTo(0,-12); ctx.lineTo(10,8); ctx.lineTo(-10,8); ctx.closePath(); }
+        else if(i%3===1){ ctx.arc(0,0,11,0,Math.PI*2); }
+        else { ctx.moveTo(0,-11); ctx.lineTo(11,0); ctx.lineTo(0,11); ctx.lineTo(-11,0); ctx.closePath(); }
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    ctx.restore();
+  }
+
+  function render(){
+    const room = rooms[state.currentRoom];
+    ctx.clearRect(0,0,W,H);
+
+    // background fog gradient
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, room.fog[0]);
+    bg.addColorStop(1, room.fog[1]);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+
+    // faint distant pillars for depth, tinted by the zone's own palette
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = room.fog[1];
+    for(let i=0;i<6;i++){
+      const px = (i*170 + 40) % (W+120) - 60;
+      ctx.beginPath();
+      ctx.moveTo(px, H-40);
+      ctx.lineTo(px+18, 60);
+      ctx.lineTo(px+46, 60);
+      ctx.lineTo(px+64, H-40);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // colored mist wash
+    ctx.fillStyle = room.mist;
+    ctx.fillRect(0,0,W,H);
+
+    // zone-specific background decoration (vines, crystals, clouds, embers, glyphs...)
+    drawZoneDecor(zoneOf(state.currentRoom));
+
+    // ambient particles (back layer), colored per zone (spores, embers, motes...)
+    ctx.save();
+    for(const p of particles){
+      ctx.globalAlpha = p.a;
+      ctx.fillStyle = room.particleColor || '#cfd8e0';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // platforms
+    for(const p of currentPlatforms(room)) drawPlatform(p);
+
+    // hub hatch label (only meaningful in hub)
+    if(room.hatch){
+      const openAbyss = reqMet(room.hatch.requires);
+      const hx = room.hatch.x + room.hatch.w/2;
+      ctx.save();
+      if(!openAbyss){
+        // diagonal warning stripes directly on the sealed plate so it reads as an obstacle at a glance
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(room.hatch.x, room.hatch.y, room.hatch.w, room.hatch.h);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(201,162,75,0.55)';
+        ctx.lineWidth = 5;
+        for(let sx=room.hatch.x-room.hatch.h; sx<room.hatch.x+room.hatch.w; sx+=14){
+          ctx.beginPath();
+          ctx.moveTo(sx, room.hatch.y+room.hatch.h);
+          ctx.lineTo(sx+room.hatch.h, room.hatch.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+        ctx.fillStyle = 'rgba(90,98,112,0.9)';
+        ctx.font = 'italic 11px Cormorant Garamond, serif'; ctx.textAlign='center';
+        ctx.fillText('▦ escotilla sellada — requiere Doble Salto + Impulso', hx, room.hatch.y-8);
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(room.hatch.x, room.hatch.y-2, room.hatch.w, 42);
+        ctx.fillStyle = 'rgba(95,179,173,0.75)';
+        ctx.font = 'italic 11px Cormorant Garamond, serif'; ctx.textAlign='center';
+        ctx.fillText('el abismo se abre', hx, room.hatch.y-8);
+      }
+      ctx.restore();
+    }
+
+    // doors
+    for(const d of room.doors) drawBarrierDoor(d);
+
+    // bridge pedestal (rune obstacle that retracts nearby spikes)
+    if(room.bridge && !state.bridges[state.currentRoom]){
+      const b = room.bridge;
+      const pulse = 0.6 + Math.sin(Date.now()/450)*0.4;
+      ctx.save();
+      ctx.fillStyle = 'rgba(201,162,75,0.08)';
+      ctx.fillRect(b.x,b.y,b.w,b.h);
+      ctx.strokeStyle = `rgba(201,162,75,${pulse})`;
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(b.x+0.5,b.y+0.5,b.w-1,b.h-1);
+      ctx.fillStyle = '#c9a24b';
+      ctx.shadowColor = '#c9a24b'; ctx.shadowBlur = 6*pulse;
+      ctx.font = '16px Cinzel, serif'; ctx.textAlign = 'center';
+      ctx.fillText('⌇', b.x+b.w/2, b.y+b.h/2+5);
+      ctx.shadowBlur = 0;
+      ctx.font = 'italic 9px Cormorant Garamond, serif';
+      ctx.fillStyle = 'rgba(201,162,75,0.8)';
+      ctx.fillText('resuelve', b.x+b.w/2, b.y-6);
+      ctx.restore();
+    }
+
+    // spike trap: jagged metal spikes jutting up from the floor until solved
+    if(room.spikes && !state.bridges[state.currentRoom]){
+      const s = room.spikes;
+      const pulse = 0.7 + Math.sin(Date.now()/300)*0.3;
+      ctx.save();
+      const count = Math.round(s.w / 18);
+      for(let i=0;i<count;i++){
+        const sx = s.x + i*(s.w/count);
+        const sw = s.w/count;
+        ctx.fillStyle = '#3a3f47';
+        ctx.beginPath();
+        ctx.moveTo(sx+2, s.y+s.h);
+        ctx.lineTo(sx+sw/2, s.y);
+        ctx.lineTo(sx+sw-2, s.y+s.h);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = `rgba(220,225,232,${0.35*pulse})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(220,90,80,0.7)';
+      ctx.font = 'italic 9px Cormorant Garamond, serif'; ctx.textAlign = 'center';
+      ctx.fillText('peligro', s.x+s.w/2, s.y-6);
+      ctx.restore();
+    }
+
+    // console (ancient rune tablet)
+    if(room.console){
+      const solved = state.abilities[room.console.grants];
+      const c = room.console;
+      const pulse = 0.6 + Math.sin(Date.now()/450)*0.4;
+      ctx.save();
+      ctx.fillStyle = solved ? 'rgba(95,179,173,0.12)' : 'rgba(201,162,75,0.08)';
+      ctx.fillRect(c.x,c.y,c.w,c.h);
+      ctx.strokeStyle = solved ? '#5fb3ad' : `rgba(201,162,75,${solved?1:pulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(c.x+0.5,c.y+0.5,c.w-1,c.h-1);
+      ctx.strokeRect(c.x+6,c.y+6,c.w-12,c.h-12);
+      ctx.fillStyle = solved ? '#5fb3ad' : '#c9a24b';
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = solved?10:6*pulse;
+      ctx.font = '22px Cinzel, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(solved?'✓':'Σ', c.x+c.w/2, c.y+38);
+      ctx.shadowBlur = 0;
+      ctx.font = 'italic 10px Cormorant Garamond, serif';
+      ctx.fillText(solved ? 'sellado' : (state.progress[c.id]+' / '+NEEDED), c.x+c.w/2, c.y+58);
+      ctx.restore();
+    }
+
+    // gem -> soul orb
+    if(room.gem && !state.gems[room.gem.id]){
+      const g = room.gem;
+      const t = Date.now()/300;
+      ctx.save();
+      const cx = g.x+g.w/2, cy = g.y+g.h/2+Math.sin(t)*4;
+      const rg = ctx.createRadialGradient(cx,cy,0,cx,cy,13);
+      rg.addColorStop(0,'rgba(230,240,245,0.95)');
+      rg.addColorStop(0.5,'rgba(201,162,75,0.55)');
+      rg.addColorStop(1,'rgba(201,162,75,0)');
+      ctx.fillStyle = rg;
+      ctx.shadowColor = '#c9a24b'; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // final gate (stone archway)
+    if(room.finalGate){
+      const fg = room.finalGate;
+      const ready = state.gems.sky && state.gems.cave && state.gems.core;
+      const pulse = 0.55 + Math.sin(Date.now()/380)*0.45;
+      ctx.save();
+      ctx.fillStyle = ready ? `rgba(201,162,75,${0.18+0.1*pulse})` : 'rgba(120,128,140,0.10)';
+      ctx.fillRect(fg.x,fg.y,fg.w,fg.h);
+      ctx.strokeStyle = ready ? `rgba(201,162,75,${0.7+0.3*pulse})` : 'rgba(120,128,140,0.6)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(fg.x,fg.y,fg.w,fg.h);
+      // arch pillars
+      ctx.fillStyle = '#161a1f';
+      ctx.fillRect(fg.x-10, fg.y-70, 12, 110);
+      ctx.fillRect(fg.x+fg.w-2, fg.y-70, 12, 110);
+      ctx.strokeStyle = ready ? '#c9a24b' : '#5a6270';
+      ctx.beginPath();
+      ctx.moveTo(fg.x-4, fg.y-70);
+      ctx.quadraticCurveTo(fg.x+fg.w/2, fg.y-140, fg.x+fg.w+4, fg.y-70);
+      ctx.stroke();
+      ctx.fillStyle = ready ? '#c9a24b' : '#7b8492';
+      ctx.font = 'italic 11px Cormorant Garamond, serif'; ctx.textAlign='center';
+      ctx.fillText(ready ? 'el portal despierta' : 'portal sellado', fg.x+fg.w/2, fg.y-84);
+      ctx.restore();
+    }
+
+    // ambient particles (front, lighter, fewer for parallax feel)
+    updateParticles();
+
+    // creatures
+    if(room.enemies){
+      for(const en of room.enemies){
+        if(en.alive){ en.type==='flying' ? drawFlyingEnemy(en) : drawEnemy(en); }
+      }
+    }
+
+    // boss
+    if(room.boss && room.boss.alive){
+      drawBoss(room.boss);
+    }
+
+    drawPlayer();
+
+    // room label
+    ctx.save();
+    ctx.fillStyle = 'rgba(200,210,220,0.55)';
+    ctx.font = 'italic 13px Cormorant Garamond, serif';
+    ctx.textAlign='left';
+    ctx.fillText(room.name, 12, 20);
+    ctx.restore();
+
+    // brief fade-in whenever a new room/zone is entered
+    if(state.transitionAlpha > 0){
+      ctx.save();
+      ctx.fillStyle = `rgba(2,3,5,${state.transitionAlpha})`;
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+      state.transitionAlpha -= 0.055;
+      if(state.transitionAlpha < 0) state.transitionAlpha = 0;
+    }
+  }
+
+  function loop(){
+    update();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- puzzles ----------
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function fmt(n){ return n<0 ? `(${n})` : `${n}`; }
+
+  function generateProblem(type){
+    type = type || 'basic';
+    if(type === 'hard'){
+      const a=randInt(-10,10), b=randInt(2,9)*(Math.random()<0.5?1:-1), c=randInt(-9,9);
+      const patterns = [
+        ()=>({text:`${fmt(a)} + ${fmt(b)} × ${fmt(c)}`, answer:a+b*c}),
+        ()=>({text:`${fmt(a)} - ${fmt(b)} × ${fmt(c)}`, answer:a-b*c}),
+        ()=>({text:`${fmt(a)} × ${fmt(b)} + ${fmt(c)}`, answer:a*b+c}),
+        ()=>({text:`${fmt(a)} × ${fmt(b)} - ${fmt(c)}`, answer:a*b-c}),
+      ];
+      return patterns[randInt(0,3)]();
+    }
+    if(type === 'compare'){
+      let a=randInt(-18,18), b=randInt(-18,18);
+      while(b===a) b=randInt(-18,18);
+      return {text:`¿Cuál es mayor: ${fmt(a)} o ${fmt(b)}?`, answer: Math.max(a,b)};
+    }
+    // basic — also three terms, just with friendlier numbers than "hard"
+    const a=randInt(-10,10), b=randInt(2,7)*(Math.random()<0.5?1:-1), c=randInt(-8,8);
+    const patterns = [
+      ()=>({text:`${fmt(a)} + ${fmt(b)} × ${fmt(c)}`, answer:a+b*c}),
+      ()=>({text:`${fmt(a)} - ${fmt(b)} × ${fmt(c)}`, answer:a-b*c}),
+      ()=>({text:`${fmt(a)} × ${fmt(b)} + ${fmt(c)}`, answer:a*b+c}),
+      ()=>({text:`${fmt(a)} × ${fmt(b)} - ${fmt(c)}`, answer:a*b-c}),
+    ];
+    return patterns[randInt(0,3)]();
+  }
+
+  function puzzleTypeForConsole(id){
+    return {consoleJump:'basic', consoleDash:'compare', consoleWall:'hard'}[id] || 'basic';
+  }
+  function puzzleTypeForBridge(key){
+    const letter = key[0];
+    if(letter==='a' || letter==='b') return 'basic';
+    if(letter==='c' || letter==='d') return 'compare';
+    return 'hard'; // wing E, deepest area
+  }
+
+  let activeConsoleId = null;
+  let activeBridgeKey = null;
+  let puzzleMode = 'console'; // 'console' | 'bridge'
+  let currentPuzzle = null;
+
+  function openConsolePuzzle(consoleObj){
+    if(document.getElementById('puzzleOverlay').classList.contains('show')) return;
+    puzzleMode = 'console';
+    activeConsoleId = consoleObj.id;
+    paused = true;
+    document.getElementById('puzzleTitle').textContent = consoleObj.title;
+    document.getElementById('puzzleSub').textContent = 'Resuelve ' + NEEDED + ' operaciones para cargar el módulo';
+    nextConsoleProblem();
+    document.getElementById('puzzleOverlay').classList.add('show');
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    setTimeout(()=>document.getElementById('puzzleInput').focus(), 50);
+  }
+  function openBridgePuzzle(roomKey){
+    if(document.getElementById('puzzleOverlay').classList.contains('show')) return;
+    puzzleMode = 'bridge';
+    activeBridgeKey = roomKey;
+    paused = true;
+    const abilityByWing = {a:'doubleJump', b:'dash', e:'wallBreak'};
+    const grantLabels = {doubleJump:'Doble Salto', dash:'Impulso', wallBreak:'Rompemuros'};
+    const abilityKey = abilityByWing[roomKey[0]];
+    if(abilityKey && !state.abilities[abilityKey]){
+      document.getElementById('puzzleTitle').textContent = 'Pinchos del ' + grantLabels[abilityKey];
+      document.getElementById('puzzleSub').textContent = 'Resuelve para avanzar hacia el ' + grantLabels[abilityKey];
+    } else {
+      document.getElementById('puzzleTitle').textContent = 'Trampa de Pinchos';
+      document.getElementById('puzzleSub').textContent = 'Resuelve la operación para retraer los pinchos';
+    }
+    nextConsoleProblem();
+    document.getElementById('puzzleOverlay').classList.add('show');
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    setTimeout(()=>document.getElementById('puzzleInput').focus(), 50);
+  }
+  function nextConsoleProblem(){
+    const type = puzzleMode==='bridge' ? puzzleTypeForBridge(activeBridgeKey) : puzzleTypeForConsole(activeConsoleId);
+    currentPuzzle = generateProblem(type);
+    document.getElementById('problemText').textContent = currentPuzzle.text.endsWith('?') ? currentPuzzle.text : currentPuzzle.text + ' = ?';
+    if(puzzleMode==='bridge'){
+      const p = state.bridgeProgress[activeBridgeKey] || 0;
+      document.getElementById('progressFill').style.width = (p/NEEDED*100)+'%';
+    } else {
+      document.getElementById('progressFill').style.width = (state.progress[activeConsoleId]/NEEDED*100)+'%';
+    }
+    document.getElementById('puzzleInput').value='';
+  }
+  function closeAllModals(){
+    document.getElementById('puzzleOverlay').classList.remove('show');
+    document.getElementById('finalOverlay').classList.remove('show');
+    paused = false;
+    activeConsoleId = null;
+    activeBridgeKey = null;
+    keys.left = false;
+    keys.right = false;
+    player.vx = 0;
+  }
+  document.getElementById('closeBtn').addEventListener('click', closeAllModals);
+  document.getElementById('finalCloseBtn').addEventListener('click', closeAllModals);
+
+  function submitConsoleAnswer(){
+    const val = parseInt(document.getElementById('puzzleInput').value, 10);
+    const fb = document.getElementById('feedback');
+    if(isNaN(val)){ fb.textContent='Escribe un número entero'; fb.className='feedback bad'; return; }
+    if(val === currentPuzzle.answer){
+      fb.textContent = '¡Correcto!'; fb.className='feedback ok';
+      sfx.correct();
+      if(puzzleMode==='bridge'){
+        const key = activeBridgeKey;
+        state.bridgeProgress[key] = (state.bridgeProgress[key] || 0) + 1;
+        if(state.bridgeProgress[key] < NEEDED){
+          showToast('✦ Progreso contra los pinchos: ' + state.bridgeProgress[key] + '/' + NEEDED);
+          setTimeout(nextConsoleProblem, 400);
+          return;
+        }
+        if(!state.bridges[key]){
+          state.bridges[key] = true;
+        }
+        const abilityByWing = {a:'doubleJump', b:'dash', e:'wallBreak'};
+        const progressByWing = {a:'consoleJump', b:'consoleDash', e:'consoleWall'};
+        const grantLabels = {doubleJump:'Doble Salto', dash:'Impulso', wallBreak:'Rompemuros'};
+        const wingLetter = key[0];
+        const abilityKey = abilityByWing[wingLetter];
+        if(abilityKey && !state.abilities[abilityKey]){
+          const progKey = progressByWing[wingLetter];
+          state.progress[progKey] = Math.min(NEEDED, state.progress[progKey] + 1);
+          if(state.progress[progKey] >= NEEDED){
+            state.abilities[abilityKey] = true;
+            sfx.unlock();
+            showToast('⚡ ¡Aprendiste ' + grantLabels[abilityKey] + ' venciendo los pinchos!');
+          } else {
+            showToast('🗿 Pinchos retraídos — progreso hacia ' + grantLabels[abilityKey] + ': ' + state.progress[progKey] + '/' + NEEDED);
+          }
+          updateHUD();
+        } else {
+          showToast('🗿 Pinchos retraídos');
+        }
+        setTimeout(closeAllModals, 500);
+        return;
+      }
+      state.progress[activeConsoleId]++;
+      if(state.progress[activeConsoleId] >= NEEDED){
+        const grant = rooms[state.currentRoom].console.grants;
+        state.abilities[grant] = true;
+        updateHUD();
+        sfx.unlock();
+        const grantLabels = {doubleJump:'Doble Salto', dash:'Impulso', wallBreak:'Rompemuros'};
+        showToast('⚡ Habilidad desbloqueada: ' + grantLabels[grant]);
+        setTimeout(closeAllModals, 500);
+      } else {
+        setTimeout(nextConsoleProblem, 400);
+      }
+    } else {
+      fb.textContent = 'Incorrecto. Nuevo intento...'; fb.className='feedback bad';
+      sfx.wrong();
+      setTimeout(nextConsoleProblem, 500);
+    }
+  }
+  document.getElementById('submitBtn').addEventListener('click', submitConsoleAnswer);
+  document.getElementById('puzzleInput').addEventListener('keydown', e=>{ if(e.code==='Enter') submitConsoleAnswer(); });
+
+  const NEEDED_BOSS = 5;
+  const finalTypes = ['basic','compare','hard','hard','hard'];
+  let finalPuzzle = null;
+  function openFinalPuzzle(){
+    paused = true;
+    state.finalProgress = 0;
+    nextFinalProblem();
+    document.getElementById('finalInput').value='';
+    document.getElementById('finalFeedback').textContent='';
+    document.getElementById('finalFeedback').className='feedback';
+    document.getElementById('finalOverlay').classList.add('show');
+    setTimeout(()=>document.getElementById('finalInput').focus(), 50);
+  }
+  function nextFinalProblem(){
+    finalPuzzle = generateProblem(finalTypes[state.finalProgress % finalTypes.length]);
+    const txt = finalPuzzle.text.endsWith('?') ? finalPuzzle.text : finalPuzzle.text + ' = ?';
+    document.getElementById('finalProblemText').textContent = txt;
+    document.getElementById('finalInput').value='';
+  }
+  function submitFinalAnswer(){
+    const val = parseInt(document.getElementById('finalInput').value, 10);
+    const fb = document.getElementById('finalFeedback');
+    if(isNaN(val)){ fb.textContent='Escribe un número entero'; fb.className='feedback bad'; return; }
+    if(val === finalPuzzle.answer){
+      state.finalProgress++;
+      sfx.correct();
+      if(state.finalProgress >= NEEDED_BOSS){
+        fb.textContent='¡Preparación completa!'; fb.className='feedback ok';
+        setTimeout(()=>{
+          document.getElementById('finalOverlay').classList.remove('show');
+          enterBossFight();
+        }, 600);
+      } else {
+        fb.textContent = '¡Correcto! (' + state.finalProgress + '/' + NEEDED_BOSS + ')'; fb.className='feedback ok';
+        setTimeout(nextFinalProblem, 400);
+      }
+    } else {
+      fb.textContent='Incorrecto, otra ecuación...'; fb.className='feedback bad';
+      sfx.wrong();
+      setTimeout(nextFinalProblem, 500);
+    }
+  }
+  document.getElementById('finalSubmitBtn').addEventListener('click', submitFinalAnswer);
+  document.getElementById('finalInput').addEventListener('keydown', e=>{ if(e.code==='Enter') submitFinalAnswer(); });
+
+  function enterBossFight(){
+    const b = rooms.boss.boss;
+    b.hp = b.maxHp; b.alive = true; b.x = b.initX; b.dir = 1; b.hitCooldown = 0;
+    enterRoom('boss', 100, 420);
+    paused = false;
+    keys.left = false; keys.right = false; player.vx = 0;
+  }
+
+  // ---------- HUD ----------
+  const mapNodes = {
+    hub:        {x:170, y:118, r:18, label:'Vestíbulo', kind:'hub'},
+    consoleA:   {x:280, y:118, r:13, label:'Doble Salto', kind:'console', grants:'doubleJump'},
+    consoleB:   {x:60,  y:118, r:13, label:'Impulso', kind:'console', grants:'dash'},
+    gemC:       {x:280, y:40,  r:13, label:'Alturas', kind:'gem', gem:'sky', requires:'doubleJump'},
+    gemD:       {x:60,  y:40,  r:13, label:'Abismo', kind:'gem', gem:'cave', requires:'dash'},
+    consoleE:   {x:170, y:185, r:13, label:'Rompemuros', kind:'console', grants:'wallBreak', reachRequires:['doubleJump','dash']},
+    gemE:       {x:170, y:235, r:13, label:'Núcleo', kind:'gem', gem:'core', requires:'wallBreak'},
+  };
+  const mapEdges = [
+    ['hub','consoleA',-10], ['hub','consoleB',-10],
+    ['hub','gemC',12], ['hub','gemD',12],
+    ['hub','consoleE',0], ['consoleE','gemE',0],
+  ];
+  function diamondPts(cx,cy,r){
+    return `${cx},${cy-r} ${cx+r},${cy} ${cx},${cy+r} ${cx-r},${cy}`;
+  }
+  function nodeStyle(n){
+    if(n.kind==='hub'){
+      const allGems = state.gems.sky && state.gems.cave && state.gems.core;
+      return {stroke:'#8a7139', fill:'rgba(201,162,75,0.1)', glyph:{t:'✦', c: allGems?'#c9a24b':'#7b8492'}};
+    }
+    if(n.kind==='console'){
+      if(n.reachRequires && !reqMet(n.reachRequires)) return {stroke:'#5a6270', fill:'rgba(20,22,26,0.6)', glyph:{t:'×',c:'#5a6270'}};
+      const solved = state.abilities[n.grants];
+      return solved ? {stroke:'#5fb3ad', fill:'rgba(95,179,173,0.12)', glyph:{t:'✓',c:'#5fb3ad'}}
+                    : {stroke:'#c9a24b', fill:'rgba(201,162,75,0.1)', glyph:null};
+    }
+    // gem
+    if(n.requires && !reqMet(n.requires)) return {stroke:'#5a6270', fill:'rgba(20,22,26,0.6)', glyph:{t:'×',c:'#5a6270'}};
+    const has = state.gems[n.gem];
+    return has ? {stroke:'#5fb3ad', fill:'rgba(95,179,173,0.12)', glyph:{t:'●',c:'#c9a24b'}}
+               : {stroke:'#c9a24b', fill:'rgba(201,162,75,0.08)', glyph:null};
+  }
+  function nodeKeyForRoom(rk){
+    if(rk==='hub') return 'hub';
+    const letter = rk[0];
+    const num = parseInt(rk.slice(1),10);
+    if(letter==='a') return 'consoleA';
+    if(letter==='b') return 'consoleB';
+    if(letter==='c') return 'gemC';
+    if(letter==='d') return 'gemD';
+    if(letter==='e') return num<=3 ? 'consoleE' : 'gemE';
+    return null;
+  }
+  function buildMinimapSVG(){
+    const currentNodeKey = nodeKeyForRoom(state.currentRoom);
+    let edgesSvg = '';
+    for(const [a,b,bend] of mapEdges){
+      const A = mapNodes[a], B = mapNodes[b];
+      const mx=(A.x+B.x)/2, my=(A.y+B.y)/2+bend;
+      edgesSvg += `<path d="M ${A.x} ${A.y} Q ${mx} ${my} ${B.x} ${B.y}" stroke="#3a3f47" stroke-width="2" fill="none"/>`;
+    }
+    let nodesSvg = '';
+    for(const key of Object.keys(mapNodes)){
+      const n = mapNodes[key];
+      const isCurrent = key === currentNodeKey;
+      const s = nodeStyle(n);
+      const glow = isCurrent ? `<polygon points="${diamondPts(n.x,n.y,n.r+6)}" fill="none" stroke="#c9a24b" stroke-width="1" opacity="0.55"/>` : '';
+      const glyph = s.glyph ? `<text x="${n.x}" y="${n.y+4}" text-anchor="middle" font-size="${s.glyph.t==='●'?9:11}" fill="${s.glyph.c}">${s.glyph.t}</text>` : '';
+      nodesSvg += `
+        ${glow}
+        <polygon points="${diamondPts(n.x,n.y,n.r)}" fill="${s.fill}" stroke="${s.stroke}" stroke-width="${isCurrent?2:1.3}"/>
+        ${glyph}
+        <text x="${n.x}" y="${n.y+n.r+13}" text-anchor="middle" font-size="9" fill="${isCurrent?'#c9a24b':'#7b8492'}" letter-spacing="0.5">${n.label}</text>
+      `;
+    }
+    return `<svg viewBox="0 0 340 255" width="480" height="230" style="max-width:100%">
+      ${edgesSvg}
+      ${nodesSvg}
+    </svg>`;
+  }
+  function updateHUD(){
+    document.getElementById('chipJump').classList.toggle('active', state.abilities.doubleJump);
+    document.getElementById('chipDash').classList.toggle('active', state.abilities.dash);
+    document.getElementById('chipWall').classList.toggle('active', state.abilities.wallBreak);
+    const gemCount = (state.gems.sky?1:0)+(state.gems.cave?1:0)+(state.gems.core?1:0);
+    document.getElementById('gemCount').textContent = gemCount;
+
+    document.getElementById('minimap').innerHTML = buildMinimapSVG();
+  }
+
+  let toastTimer=null;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  // ---------- reset ----------
+  function resetGame(){
+    state.abilities.doubleJump = false;
+    state.abilities.dash = false;
+    state.abilities.wallBreak = false;
+    state.gems.sky = false;
+    state.gems.cave = false;
+    state.gems.core = false;
+    state.progress.consoleJump = 0;
+    state.progress.consoleDash = 0;
+    state.progress.consoleWall = 0;
+    state.bridges = {};
+    state.bridgeProgress = {};
+    state.finalProgress = 0;
+    if(rooms.boss && rooms.boss.boss){
+      const b = rooms.boss.boss;
+      b.hp = b.maxHp; b.alive = true; b.x = b.initX; b.dir = 1; b.hitCooldown = 0;
+    }
+    document.getElementById('victory').classList.remove('show');
+    closeAllModals();
+    Object.values(rooms).forEach(r=>{
+      if(r.enemies) r.enemies.forEach(en=>{ en.alive=true; en.dir=1; if(en.type==='flying'){ en.y=en.initY; } else { en.x=en.initX; } });
+    });
+    enterRoom('hub', 60, 420);
+  }
+  document.getElementById('resetBtn').addEventListener('click', ()=>{ if(confirm('¿Reiniciar el juego desde el vestíbulo?')) resetGame(); });
+  document.getElementById('muteBtn').addEventListener('click', ()=>{
+    state.soundOn = !state.soundOn;
+    document.getElementById('muteBtn').textContent = state.soundOn ? '🔊 Sonido' : '🔇 Silencio';
+    if(state.soundOn) ensureAudio();
+  });
+  document.getElementById('playAgainBtn').addEventListener('click', resetGame);
+  document.getElementById('startBtn').addEventListener('click', ()=>{
+    document.getElementById('startOverlay').classList.remove('show');
+    paused = false;
+    ensureAudio();
+  });
+
+  // ---------- init ----------
+  updateHUD();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
